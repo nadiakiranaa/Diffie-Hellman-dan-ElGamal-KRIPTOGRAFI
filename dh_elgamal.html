@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bob → Alice: Diffie-Hellman + ElGamal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1128;--bg2:#161c3d;--card:#1b2250;--ink:#e8ebff;--mute:#9aa3d6;--alice:#4fd1e8;--bob:#ff7a9c;--key:#ffd166;--ok:#6ee7a8;--line:#2d3670;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f3f4ff;--bg2:#e6e9ff;--card:#fff;--ink:#161a3a;--mute:#555d93;--alice:#0b84a0;--bob:#d6336c;--key:#b7791f;--ok:#15803d;--line:#c9cef0;color-scheme:light}}
+:root[data-theme="light"]{--bg:#f3f4ff;--bg2:#e6e9ff;--card:#fff;--ink:#161a3a;--mute:#555d93;--alice:#0b84a0;--bob:#d6336c;--key:#b7791f;--ok:#15803d;--line:#c9cef0;color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Sora,system-ui,sans-serif;background-image:radial-gradient(circle at 15% 0,var(--bg2),transparent 45%),radial-gradient(circle at 90% 10%,color-mix(in srgb,var(--bob) 14%,transparent),transparent 40%)}
+.w{max-width:980px;margin:auto;padding:20px 16px 60px}
+h1{font-size:clamp(28px,6vw,52px);line-height:1.05;font-weight:800;margin:6px 0 4px;letter-spacing:-.02em}
+h1 .a{color:var(--alice)}h1 .b{color:var(--bob)}
+.sub{color:var(--mute);max-width:60ch;margin:0 0 14px}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:start}
+button,input,textarea,select{font:inherit;color:inherit}
+.btn{background:linear-gradient(90deg,var(--alice),var(--bob));color:#0d1128;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer}
+.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,.tab:focus-visible{outline:2px solid var(--key);outline-offset:2px}
+.id{display:grid;grid-template-columns:1fr 2fr;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px}
+input,textarea,select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+label{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent;font-weight:600}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--key)}
+.pane{display:none}.pane.on{display:block}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.ctl .full{grid-column:1/-1}
+.flow{display:flex;gap:4px;margin:16px 0;overflow-x:auto}
+.flow span{flex:1;min-width:92px;text-align:center;font-size:12px;padding:8px 4px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--mute)}
+.flow span.on{border-color:var(--ok);color:var(--ink);box-shadow:0 0 0 1px var(--ok) inset}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--key);border-radius:12px;padding:14px 16px;margin:14px 0}
+.card h3{margin:0 0 8px;font-size:18px}
+.card.a{border-left-color:var(--alice)}.card.b{border-left-color:var(--bob)}
+.r{display:grid;grid-template-columns:minmax(150px,230px) 1fr;gap:4px 12px;padding:5px 0;border-top:1px dashed var(--line);font-size:13px}
+.r b{color:var(--mute);font-weight:400}
+.r code{font:12.5px/1.5 "JetBrains Mono",monospace;word-break:break-all}
+.sec{color:var(--bob)}.pub{color:var(--alice)}.res{color:var(--ok)}
+details{margin-top:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+summary{cursor:pointer;font-weight:600;color:var(--key)}
+pre,.f{font:12.5px/1.7 "JetBrains Mono",monospace;white-space:pre-wrap;word-break:break-word;margin:8px 0 0}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bob);font-weight:700}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.note{color:var(--mute);font-size:13px}
+.msg{padding:12px;border-radius:10px;background:var(--bg);border:1px dashed var(--ok);margin-top:10px}
+@media (max-width:600px){.id{grid-template-columns:1fr}.r{grid-template-columns:1fr}}
+@media print{.tabs,.ctl,.flow,.btn,.top button{display:none!important}.pane{display:block!important}body{background:#fff;color:#000}.card,.id{background:#fff;border-color:#999}details{display:block}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="w">
+<div class="top"><div>
+<h1><span class="b">Bob</span> → <span class="a">Alice</span><br>Diffie-Hellman + ElGamal</h1>
+<p class="sub">Simulasi pengiriman pesan rahasia, dihitung langsung di browser tanpa library kriptografi. Setiap tahap menampilkan nilai antara beserta rumusnya.</p></div>
+<button class="btn g" id="th" aria-label="Ganti tema">Tema</button></div>
+
+<div class="id">
+<div><label for="kel">Kelompok</label><input id="kel" value="Kelompok X"></div>
+<div><label for="ang">Nama anggota</label><textarea id="ang" rows="2">Nama Anggota 1, Nama Anggota 2, Nama Anggota 3</textarea></div>
+</div>
+
+<div class="tabs" role="tablist">
+<button class="tab" role="tab" data-t="sim" aria-selected="true">Studi kasus</button>
+<button class="tab" role="tab" data-t="teo" aria-selected="false">Bedah rumus</button>
+<button class="tab" role="tab" data-t="sl" aria-selected="false">Uji contoh angka</button>
+</div>
+
+<section class="pane on" id="sim">
+<div class="ctl">
+<div><label for="bits">Ukuran p (bit)</label><select id="bits"><option>16</option><option>24</option><option selected>32</option><option>48</option><option>64</option></select></div>
+<div class="full"><label for="pesan">Pesan rahasia Bob untuk Alice</label><input id="pesan" value="Halo Alice, nilai ETS Kriptografi kita A!"></div>
+<div><label for="mp">p manual (opsional)</label><input id="mp" inputmode="numeric" placeholder="prima ≥ 1000"></div>
+<div><label for="mg">g manual</label><input id="mg" inputmode="numeric"></div>
+<div><label for="mx">x Alice (DH)</label><input id="mx" inputmode="numeric"></div>
+<div><label for="my">y Bob (DH)</label><input id="my" inputmode="numeric"></div>
+<div><label for="me">x ElGamal Alice</label><input id="me" inputmode="numeric"></div>
+<div class="full"><button class="btn" id="run">Jalankan studi kasus</button> <button class="btn g" id="prn">Simpan sebagai PDF</button>
+<span class="note">Kosongkan kolom manual untuk nilai acak otomatis.</span></div>
+</div>
+<div class="flow" id="flow"><span>0 Parameter</span><span>1 Diffie-Hellman</span><span>2 Kunci ElGamal</span><span>3 Enkripsi</span><span>4 Dekripsi</span></div>
+<div id="out"><p class="note">Tekan “Jalankan studi kasus” untuk memulai.</p></div>
+</section>
+
+<section class="pane" id="teo">
+<div class="grid2">
+<div class="card"><h3>Perpangkatan modulo</h3><div class="f">basis^eksp mod m dengan square-and-multiply.
+Baca eksponen dari bit terendah:
+  bit = 1 → hasil = hasil·basis mod m
+  basis = basis² mod m, eksp ← eksp ÷ 2
+Kompleksitas O(log eksp), jadi aman untuk bilangan besar.</div></div>
+<div class="card"><h3>Invers modulo (Extended Euclid)</h3><div class="f">Cari s, t sehingga a·s + b·t = fpb(a, b).
+Jika fpb = 1 maka a⁻¹ ≡ s (mod m).
+Dalam program, dekripsi memakai Fermat:
+a⁻¹ ≡ a^(p−1−x) (mod p).</div></div>
+<div class="card"><h3>Miller-Rabin</h3><div class="f">Tulis p−1 = 2^r · d dengan d ganjil.
+Untuk tiap basis a hitung x = a^d mod p.
+Lolos jika x = 1 atau x = p−1, atau ada kuadrat
+berulang (r−1 kali) yang menghasilkan p−1.
+Prima aman: p = 2q + 1 dengan q prima.</div></div>
+<div class="card"><h3>Akar primitif</h3><div class="f">g akar primitif p ⇔ untuk setiap faktor prima q dari p−1:
+  g^((p−1)/q) mod p ≠ 1.
+Untuk prima aman, faktor p−1 hanya {2, q}, sehingga
+pengecekannya cukup dua perpangkatan.</div></div>
+<div class="card a"><h3>Diffie-Hellman</h3><div class="f">Publik: p, g.
+Alice: pilih x, kirim X = g^x mod p.
+Bob  : pilih y, kirim Y = g^y mod p.
+Alice: K  = Y^x mod p = g^(xy) mod p
+Bob  : K' = X^y mod p = g^(xy) mod p
+Maka K = K'. Penyadap yang hanya tahu p, g, X, Y harus
+menyelesaikan logaritma diskrit untuk mendapatkan x atau y.</div></div>
+<div class="card b"><h3>ElGamal: kunci</h3><div class="f">Privat: x dengan 1 &lt; x &lt; p−1.
+Publik: y = g^x mod p, dibagikan sebagai (y, g, p).</div></div>
+<div class="card b"><h3>ElGamal: enkripsi</h3><div class="f">Pilih k acak baru untuk setiap blok.
+  a = g^k mod p
+  b = y^k · m mod p
+Cipherteks blok = (a, b), dengan 0 ≤ m &lt; p.</div></div>
+<div class="card a"><h3>ElGamal: dekripsi</h3><div class="f">a^x = g^(kx) dan b = y^k·m = g^(xk)·m.
+m = b · (a^x)⁻¹ mod p
+  = b · a^(p−1−x) mod p     (teorema Fermat kecil)
+Kancing pesan: hasil dekripsi harus diawali [SESI:K]
+yang cocok dengan kunci sesi Diffie-Hellman.</div></div>
+<div class="card"><h3>Teks menjadi blok angka</h3><div class="f">1 karakter = 3 digit kode ASCII (A → 065).
+Panjang blok d = kelipatan 3 terbesar &lt; jumlah digit p,
+agar nilai blok selalu lebih kecil dari p.
+Sisa digit diisi 0 (karakter NUL, dibuang saat dekripsi).</div></div>
+</div>
+</section>
+
+<section class="pane" id="sl"><p class="note">Contoh angka dari materi Pertemuan 9, dihitung dengan fungsi yang sama.</p><div id="slout"></div><button class="btn" id="runsl">Verifikasi</button></section>
+</div>
+
+<script>
+const B=BigInt,$=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function modpow(b,e,m){let h=1n;b%=m;while(e>0n){if(e&1n)h=h*b%m;b=b*b%m;e>>=1n}return h}
+function egcd(a,b){let s0=1n,s1=0n,t0=0n,t1=1n;while(b){const q=a/b;[a,b]=[b,a-q*b];[s0,s1]=[s1,s0-q*s1];[t0,t1]=[t1,t0-q*t1]}return[a,s0,t0]}
+function modinv(a,m){const[g,s]=egcd(((a%m)+m)%m,m);if(g!==1n)throw Error("invers tidak ada");return((s%m)+m)%m}
+function rndBelow(n){const l=Math.ceil(n.toString(2).length/8)+8,u=crypto.getRandomValues(new Uint8Array(l));let v=0n;for(const x of u)v=(v<<8n)|B(x);return v%n}
+const SM=[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47].map(B);
+function isPrima(n){if(n<2n)return false;for(const p of SM){if(n===p)return true;if(n%p===0n)return false}
+let d=n-1n,r=0;while(d%2n===0n){d/=2n;r++}
+const bs=SM.slice(0,12).concat(Array.from({length:8},()=>2n+rndBelow(n-3n)));
+for(const a of bs){let x=modpow(a,d,n);if(x===1n||x===n-1n)continue;let ok=false;for(let i=0;i<r-1;i++){x=x*x%n;if(x===n-1n){ok=true;break}}if(!ok)return false}return true}
+function faktor(n){const s=new Set();n=Number(n);for(let d=2;d*d<=n;d+=d===2?1:2){while(n%d===0){s.add(B(d));n/=d}}if(n>1)s.add(B(n));return s}
+function isAkar(g,p,f){if(!(1n<g&&g<p))return false;for(const q of f)if(modpow(g,(p-1n)/q,p)===1n)return false;return true}
+function cariAkar(p,f){let g=2n;while(!isAkar(g,p,f))g++;return g}
+function bangkit(bits){for(;;){const q=rndBelow(1n<<B(bits-1))|(1n<<B(bits-2))|1n;if(isPrima(q)&&isPrima(2n*q+1n)){const p=2n*q+1n;return[p,cariAkar(p,new Set([2n,q]))]}}}
+const rnd=p=>2n+rndBelow(p-3n);
+function egEnk(m,y,g,p,k){if(k===undefined)k=rnd(p);return[modpow(g,k,p),modpow(y,k,p)*m%p,k]}
+function egDek(a,b,x,p){const inv=modpow(a,p-1n-B(x),p);return[b*inv%p,inv]}
+const pb=p=>Math.floor((p.toString().length-1)/3)*3;
+function teksBlok(t,p){const d=pb(p);let s="";for(const c of t){const o=c.codePointAt(0);s+=String(o<1000?o:63).padStart(3,"0")}while(s.length%d)s+="0";const r=[];for(let i=0;i<s.length;i+=d)r.push(B(s.slice(i,i+d)));return r}
+function blokTeks(bl,p){const d=pb(p);const s=bl.map(m=>m.toString().padStart(d,"0")).join("");let t="";for(let i=0;i<s.length;i+=3)t+=String.fromCharCode(+s.slice(i,i+3));return t.replace(/\0+$/,"")}
+
+const row=(l,v,c="")=>`<div class="r"><b>${l}</b><code class="${c}">${esc(v)}</code></div>`;
+const det=(t,b)=>`<details><summary>${t}</summary><pre>${esc(b)}</pre></details>`;
+const card=(cls,h,body)=>`<div class="card ${cls}"><h3>${h}</h3>${body}</div>`;
+const flow=n=>document.querySelectorAll("#flow span").forEach((e,i)=>e.classList.toggle("on",i<=n));
+
+function run(){
+ const out=$("#out");let h="";
+ try{
+ let p,g;const mp=$("#mp").value.trim();
+ if(mp){p=B(mp);if(p<1000n||!isPrima(p))throw Error("p harus bilangan prima ≥ 1000.");
+  g=B($("#mg").value||"0");
+  if(p<=10n**13n&&!isAkar(g,p,faktor(p-1n)))throw Error("g bukan akar primitif dari p.");}
+ else[p,g]=bangkit(+$("#bits").value);
+ const pv=id=>{const v=$(id).value.trim();if(!v)return rnd(p);const n=B(v);if(!(1n<n&&n<p-1n))throw Error("Kunci privat harus 1 < nilai < p−1.");return n};
+ const xd=pv("#mx"),yd=pv("#my"),xe=pv("#me"),pesan=$("#pesan").value;
+ h+=card("","Tahap 0 · Parameter publik",row("p (prima)",p,"pub")+row("g (akar primitif p)",g,"pub")+row("jumlah bit p",p.toString(2).length)+
+  det("Rumus & penjelasan","p dipilih prima aman: p = 2q + 1, q prima.\ng akar primitif ⇔ g^((p−1)/q) mod p ≠ 1 untuk q ∈ {2, "+((p-1n)/2n)+"}.\nKeduanya boleh diketahui penyadap."));
+ const X=modpow(g,xd,p),Y=modpow(g,yd,p),K=modpow(Y,xd,p),K2=modpow(X,yd,p);
+ h+=card("a","Tahap 1 · Diffie-Hellman",row("x Alice (rahasia)",xd,"sec")+row("X = g^x mod p",X,"pub")+row("y Bob (rahasia)",yd,"sec")+row("Y = g^y mod p",Y,"pub")+
+  row("Alice: K = Y^x mod p",K,"res")+row("Bob: K' = X^y mod p",K2,"res")+
+  `<div class="r"><b>K = K' ?</b><span class="${K===K2?"ok":"bad"}">${K===K2?"YA, kunci sesi sama":"TIDAK"}</span></div>`+
+  det("Mengapa K = K'",`K  = Y^x = (g^y)^x = g^(xy) mod p\nK' = X^y = (g^x)^y = g^(xy) mod p\n\nSubstitusi:\nX = ${g}^${xd} mod ${p} = ${X}\nY = ${g}^${yd} mod ${p} = ${Y}\nK = ${Y}^${xd} mod ${p} = ${K}\n\nPenyadap hanya tahu p, g, X, Y; mencari K berarti menyelesaikan logaritma diskrit.`));
+ if(K!==K2)throw Error("Diffie-Hellman gagal.");
+ const ye=modpow(g,xe,p);
+ h+=card("a","Tahap 2 · ElGamal: kunci Alice",row("Kunci privat x",xe,"sec")+row("Kunci publik y = g^x mod p",ye,"pub")+row("(y, g, p)",`(${ye}, ${g}, ${p})`,"pub")+
+  det("Substitusi",`y = ${g}^${xe} mod ${p} = ${ye}\nx disimpan Alice, (y, g, p) dibagikan ke Bob.`));
+ const payload=`[SESI:${K}] ${pesan}`,blok=teksBlok(payload,p);
+ let t3=row("Pesan asli",pesan)+row("Payload + penanda sesi",payload)+row("Panjang blok",pb(p)+" digit → "+blok.length+" blok")+row("Blok plainteks m",blok.join(", "));
+ const cip=[];
+ blok.forEach((m,i)=>{const[a,b,k]=egEnk(m,ye,g,p);cip.push([a,b]);
+  t3+=det(`Blok ${i+1}: m = ${m}`,`k (acak)   = ${k}\na = g^k mod p   = ${g}^${k} mod ${p} = ${a}\nb = y^k·m mod p = ${ye}^${k}·${m} mod ${p} = ${b}\ncipherteks c${i+1} = (${a}, ${b})`)});
+ h+=card("b","Tahap 3 · ElGamal: Bob mengenkripsi",t3+row("Cipherteks dikirim",cip.map(c=>`(${c[0]}, ${c[1]})`).join(" "),"pub"));
+ const hs=[];let t4="";
+ cip.forEach(([a,b],i)=>{const[m,inv]=egDek(a,b,xe,p);hs.push(m);t4+=det(`Blok ${i+1} → m = ${m}`,`(a^x)⁻¹ = a^(p−1−x) mod p = ${a}^${p-1n-xe} mod ${p} = ${inv}\nm = b·(a^x)⁻¹ mod p = ${b}·${inv} mod ${p} = ${m}`)});
+ const plain=blokTeks(hs,p),tag=`[SESI:${K}] `,ok=plain.startsWith(tag);
+ h+=card("a","Tahap 4 · ElGamal: Alice mendekripsi",t4+row("Payload hasil dekripsi",plain)+
+  `<div class="r"><b>Penanda sesi</b><span class="${ok?"ok":"bad"}">${ok?"COCOK dengan kunci sesi DH (K = "+K+")":"TIDAK COCOK, pesan ditolak"}</span></div>`+
+  (ok?`<div class="msg"><b>Pesan asli:</b> ${esc(plain.slice(tag.length))}</div>`:""));
+ out.innerHTML=`<p class="note">${esc($("#kel").value)}: ${esc($("#ang").value)}</p>`+h;flow(4);
+ }catch(e){out.innerHTML=`<div class="card"><h3 class="bad">Input belum valid</h3><p>${esc(e.message)}</p></div>`;flow(-1)}
+}
+function slide(){
+ let h="";const cmp=(a,b)=>`<span class="${a===b?"ok":"bad"}">${a===b?"SESUAI":"BERBEDA"}</span>`;
+ const X=modpow(6n,124n,251n),Y=modpow(6n,158n,251n),K=modpow(Y,124n,251n),K2=modpow(X,158n,251n);
+ h+=card("a","Diffie-Hellman (n=251, g=6, x=124, y=158)",row("X = 6^124 mod 251",X+" (materi: 209)")+row("Y = 6^158 mod 251",Y+" (materi: 197)")+row("K, K'",K+", "+K2+" (materi: 79)")+`<div class="r"><b>Hasil</b>${cmp([X,Y,K,K2].join(),"209,197,79,79")}</div>`);
+ const p=2273n,g=3n,x=243n,y=modpow(g,x,p),teks="HALO";
+ const m=[...teks].map(c=>String(c.charCodeAt(0)-65).padStart(2,"0")).join(""),bl=[B(m.slice(0,4)),B(m.slice(4))];
+ const ks=[1463n,2001n],c=bl.map((v,i)=>egEnk(v,y,g,p,ks[i]));
+ const d=c.map(([a,b])=>egDek(a,b,x,p)[0]),dg=d.map(v=>v.toString().padStart(4,"0")).join(""),t2=dg.match(/../g).map(v=>String.fromCharCode(+v+65)).join("");
+ h+=card("b","ElGamal (p=2273, g=3, x=243, plainteks HALO)",row("y = 3^243 mod 2273",y+" (materi: 461)")+row("Blok m",m.slice(0,4)+", "+m.slice(4)+" (materi: 0700, 1114)")+
+  row("c1, c2",c.map(v=>`(${v[0]}, ${v[1]})`).join(" ")+" (materi: (1439,74), (1220,1682))")+`<div class="r"><b>Enkripsi</b>${cmp(c.map(v=>v.join()).join("|"),"1439,74|1220,1682")}</div>`+row("Dekripsi",t2,"res"));
+ $("#slout").innerHTML=h;
+}
+$("#run").onclick=run;$("#runsl").onclick=slide;$("#prn").onclick=()=>window.print();
+$("#th").onclick=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme==="dark";r.dataset.theme=d?"light":"dark"};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));document.querySelectorAll(".pane").forEach(x=>x.classList.toggle("on",x.id===b.dataset.t));if(b.dataset.t==="sl")slide()});
+run();
+</script>
+</body>
+</html>
